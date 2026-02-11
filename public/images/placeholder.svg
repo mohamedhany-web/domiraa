@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#E5E7EB"/>
+  <g fill="#9CA3AF">
+    <path d="M175 100h50v100h-50z"/>
+    <circle cx="200" cy="90" r="25"/>
+    <path d="M140 200h120l-30-40-20 25-25-35z"/>
+  </g>
+  <text x="200" y="250" text-anchor="middle" fill="#6B7280" font-family="Arial, sans-serif" font-size="14">لا توجد صورة</text>
+</svg>
+
