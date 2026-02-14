@@ -161,7 +161,7 @@
         </div>
         
         <!-- Booking Form -->
-        <form method="POST" action="{{ route('room.booking.store', ['property' => $property->id, 'room' => $room->id]) }}" id="roomBookingForm">
+        <form method="POST" action="{{ route('room.booking.store', ['property' => $property->id, 'room' => $room->id]) }}" id="roomBookingForm" data-refresh-csrf="1">
             @csrf
             <input type="hidden" name="_token" value="{{ csrf_token() }}" id="csrf_token_input">
             

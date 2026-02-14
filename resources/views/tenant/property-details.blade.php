@@ -174,6 +174,89 @@
         object-fit: cover;
     }
     
+    /* Lightbox تكبير الصور */
+    .lightbox-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.92);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    .lightbox-overlay.active {
+        display: flex;
+    }
+    .lightbox-content {
+        position: relative;
+        max-width: 95vw;
+        max-height: 95vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .lightbox-content img {
+        max-width: 100%;
+        max-height: 90vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+    .lightbox-close {
+        position: absolute;
+        top: -45px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 44px;
+        height: 44px;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        font-size: 1.75rem;
+        cursor: pointer;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+    }
+    .lightbox-close:hover {
+        background: rgba(255,255,255,0.35);
+    }
+    .lightbox-prev, .lightbox-next {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 50px;
+        height: 50px;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+    .lightbox-prev:hover, .lightbox-next:hover {
+        background: rgba(255,255,255,0.35);
+    }
+    .lightbox-prev { right: 10px; }
+    .lightbox-next { left: 10px; }
+    .lightbox-counter {
+        position: absolute;
+        bottom: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255,255,255,0.9);
+        font-size: 0.95rem;
+    }
+    .property-hero { cursor: pointer; }
+    
     .amenities-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -374,7 +457,7 @@
 <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="px-4 py-6 sm:px-0">
         <!-- Hero Section with Main Image -->
-        <div class="property-hero">
+        <div class="property-hero" @if($property->images->first()) onclick="openLightboxIndex(0)" @endif>
             @if($property->images->first())
                 <img src="{{ $property->images->first()->url }}" 
                      alt="{{ $property->address }}" 
@@ -507,15 +590,15 @@
             <h2 class="section-title">
                 <i class="fas fa-images"></i>
                 معرض الصور
+                <span style="font-size: 0.9rem; font-weight: 500; color: #6B7280;">(اضغط على الصورة للتكبير)</span>
             </h2>
             <div class="gallery-grid">
-                @foreach($property->images->skip(1) as $image)
-                    <div class="gallery-item">
+                @foreach($property->images->skip(1) as $index => $image)
+                    <div class="gallery-item" onclick="openLightboxIndex({{ $index + 1 }})">
                         <img src="{{ $image->thumbnail_url }}" 
                              data-full="{{ $image->url }}"
                              alt="صورة الوحدة"
                              loading="lazy"
-                             onclick="openLightbox('{{ $image->url }}')"
                              onerror="this.src='/images/placeholder.svg';">
                     </div>
                 @endforeach
@@ -958,6 +1041,76 @@
         </div>
     </div>
 </div>
+
+<!-- Lightbox تكبير الصور -->
+<div id="lightbox" class="lightbox-overlay" onclick="closeLightboxOnOverlay(event)">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+        <button type="button" class="lightbox-close" onclick="closeLightbox()" aria-label="إغلاق">&times;</button>
+        @if($property->images->count() > 0)
+        <button type="button" class="lightbox-prev" id="lightboxPrev" onclick="event.stopPropagation(); lightboxPrev();" aria-label="السابق"><i class="fas fa-chevron-right"></i></button>
+        <img id="lightboxImg" src="" alt="صورة مكبرة">
+        <button type="button" class="lightbox-next" id="lightboxNext" onclick="event.stopPropagation(); lightboxNext();" aria-label="التالي"><i class="fas fa-chevron-left"></i></button>
+        <span class="lightbox-counter" id="lightboxCounter"></span>
+        @endif
+    </div>
+</div>
+
+@if($property->images->count() > 0)
+<script>
+(function() {
+    var urls = @json($property->images->pluck('url'));
+    var total = urls.length;
+    var currentIndex = 0;
+
+    window.openLightboxIndex = function(index) {
+        currentIndex = index >= 0 && index < total ? index : 0;
+        var img = document.getElementById('lightboxImg');
+        var counter = document.getElementById('lightboxCounter');
+        var prevBtn = document.getElementById('lightboxPrev');
+        var nextBtn = document.getElementById('lightboxNext');
+        if (img && urls[currentIndex]) {
+            img.src = urls[currentIndex];
+            document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            if (counter) counter.textContent = (currentIndex + 1) + ' / ' + total;
+            if (prevBtn) prevBtn.style.visibility = total > 1 ? 'visible' : 'hidden';
+            if (nextBtn) nextBtn.style.visibility = total > 1 ? 'visible' : 'hidden';
+        }
+    };
+
+    window.closeLightbox = function() {
+        document.getElementById('lightbox').classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    function closeLightboxOnOverlay(e) {
+        if (e.target.id === 'lightbox') closeLightbox();
+    }
+    window.closeLightboxOnOverlay = closeLightboxOnOverlay;
+
+    function lightboxPrev() {
+        currentIndex = (currentIndex - 1 + total) % total;
+        document.getElementById('lightboxImg').src = urls[currentIndex];
+        document.getElementById('lightboxCounter').textContent = (currentIndex + 1) + ' / ' + total;
+    }
+    window.lightboxPrev = lightboxPrev;
+
+    function lightboxNext() {
+        currentIndex = (currentIndex + 1) % total;
+        document.getElementById('lightboxImg').src = urls[currentIndex];
+        document.getElementById('lightboxCounter').textContent = (currentIndex + 1) + ' / ' + total;
+    }
+    window.lightboxNext = lightboxNext;
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLightbox();
+        if (!document.getElementById('lightbox').classList.contains('active')) return;
+        if (e.key === 'ArrowRight') lightboxPrev();
+        if (e.key === 'ArrowLeft') lightboxNext();
+    });
+})();
+</script>
+@endif
 @endsection
 
 

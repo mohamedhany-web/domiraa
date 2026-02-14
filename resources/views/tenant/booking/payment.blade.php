@@ -395,7 +395,7 @@
                 بيانات الدفع
             </h2>
             
-            <form method="POST" action="{{ route('tenant.booking.confirm-payment', $booking) }}" enctype="multipart/form-data" id="paymentForm">
+            <form method="POST" action="{{ route('tenant.booking.confirm-payment', $booking) }}" enctype="multipart/form-data" id="paymentForm" data-refresh-csrf="1">
                 @csrf
                 <input type="hidden" name="_token" value="{{ csrf_token() }}" id="csrf_token_input">
                 

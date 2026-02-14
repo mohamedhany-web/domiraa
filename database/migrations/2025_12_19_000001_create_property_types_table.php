@@ -25,6 +25,7 @@ return new class extends Migration
         DB::table('property_types')->insert([
             ['name' => 'سكني', 'slug' => 'residential', 'icon' => 'fas fa-home', 'sort_order' => 1, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['name' => 'تجاري', 'slug' => 'commercial', 'icon' => 'fas fa-store', 'sort_order' => 2, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'طبي', 'slug' => 'medical', 'icon' => 'fas fa-stethoscope', 'sort_order' => 3, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 

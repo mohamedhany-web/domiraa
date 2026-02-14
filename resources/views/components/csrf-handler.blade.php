@@ -1,79 +1,80 @@
 {{-- CSRF Token Handler Script --}}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Refresh CSRF token before form submission if needed
-    const forms = document.querySelectorAll('form[method="POST"], form[method="PUT"], form[method="PATCH"], form[method="DELETE"]');
-    
+    function setSubmitButtonLoading(form, loading) {
+        var btn = form.querySelector('button[type="submit"]');
+        if (!btn) return;
+        if (loading) {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 0.5rem;"></i> جاري الإرسال...';
+        } else {
+            btn.disabled = false;
+            if (btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
+        }
+    }
+
+    function updateTokenInForm(form, token) {
+        var tokenInput = form.querySelector('input[name="_token"]');
+        if (tokenInput) {
+            tokenInput.value = token;
+        } else {
+            var hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = '_token';
+            hiddenInput.value = token;
+            form.appendChild(hiddenInput);
+        }
+        var metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) metaToken.content = token;
+    }
+
+    var forms = document.querySelectorAll('form[method="POST"], form[method="PUT"], form[method="PATCH"], form[method="DELETE"]');
     forms.forEach(function(form) {
         form.addEventListener('submit', function(e) {
-            const tokenInput = form.querySelector('input[name="_token"]');
-            const metaToken = document.querySelector('meta[name="csrf-token"]');
-            
+            var refreshCsrf = form.dataset.refreshCsrf === '1' || form.id === 'guestBookingForm' || form.id === 'bookingForm' || form.id === 'roomBookingForm' || form.id === 'paymentForm';
+
+            if (refreshCsrf && form.dataset.csrfRefreshed === '1') {
+                form.removeAttribute('data-csrf-refreshed');
+                return;
+            }
+
+            var tokenInput = form.querySelector('input[name="_token"]');
+            var metaToken = document.querySelector('meta[name="csrf-token"]');
             if (tokenInput && metaToken) {
-                // Update token from meta tag if available
                 tokenInput.value = metaToken.content;
             }
-            
-            // If token is missing, try to get fresh one
-            if (!tokenInput || !tokenInput.value) {
+
+            if (refreshCsrf || !tokenInput || !tokenInput.value) {
                 e.preventDefault();
-                
+                setSubmitButtonLoading(form, true);
+
                 fetch('/csrf-token', {
                     method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
                     if (data.token) {
-                        if (tokenInput) {
-                            tokenInput.value = data.token;
-                        } else {
-                            const hiddenInput = document.createElement('input');
-                            hiddenInput.type = 'hidden';
-                            hiddenInput.name = '_token';
-                            hiddenInput.value = data.token;
-                            form.appendChild(hiddenInput);
-                        }
-                        
-                        // Update meta tag
-                        if (metaToken) {
-                            metaToken.content = data.token;
-                        }
-                        
-                        // Retry form submission
+                        updateTokenInForm(form, data.token);
+                        form.dataset.csrfRefreshed = '1';
                         form.submit();
                     } else {
+                        setSubmitButtonLoading(form, false);
                         alert('حدث خطأ في الجلسة. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
                         window.location.reload();
                     }
                 })
-                .catch(error => {
-                    console.error('CSRF token refresh error:', error);
-                    alert('حدث خطأ في الجلسة. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
-                    window.location.reload();
+                .catch(function(err) {
+                    console.error('CSRF token refresh error:', err);
+                    setSubmitButtonLoading(form, false);
+                    alert('حدث خطأ في الاتصال. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
                 });
             }
         });
     });
-    
-    // Handle 419 errors globally
-    document.addEventListener('submit', function(e) {
-        const form = e.target;
-        if (form.tagName === 'FORM') {
-            const originalSubmit = form.onsubmit;
-            
-            // Intercept form submission to handle CSRF errors
-            form.addEventListener('submit', function(event) {
-                // This will be handled by the form's natural submission
-                // If we get a 419 error, it will be caught by the error handler below
-            });
-        }
-    });
 });
 
-// Global error handler for AJAX requests
 window.addEventListener('unhandledrejection', function(event) {
     if (event.reason && event.reason.status === 419) {
         alert('انتهت صلاحية الجلسة. يرجى تحديث الصفحة والمحاولة مرة أخرى.');

@@ -36,7 +36,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('tenant.booking.store', $property) }}" class="bg-white rounded-lg shadow-md p-6" id="bookingForm">
+        <form method="POST" action="{{ route('tenant.booking.store', $property) }}" class="bg-white rounded-lg shadow-md p-6" id="bookingForm" data-refresh-csrf="1">
             @csrf
             
             <div class="mb-6">

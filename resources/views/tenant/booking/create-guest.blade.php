@@ -300,6 +300,26 @@
         </div>
         
         <div class="booking-form-card">
+            @if($errors->any())
+            <div style="background: #FEE2E2; border: 2px solid #EF4444; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <p style="color: #B91C1C; font-weight: 700; margin-bottom: 0.5rem;"><i class="fas fa-exclamation-circle"></i> يرجى تصحيح الأخطاء التالية:</p>
+                <ul style="color: #B91C1C; margin: 0; padding-right: 1.25rem;">
+                    @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+            @if(session('error'))
+            <div style="background: #FEE2E2; border: 2px solid #EF4444; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <p style="color: #B91C1C; font-weight: 600; margin: 0;"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</p>
+            </div>
+            @endif
+            @if(session('success'))
+            <div style="background: #D1FAE5; border: 2px solid #10B981; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <p style="color: #065F46; font-weight: 600; margin: 0;"><i class="fas fa-check-circle"></i> {{ session('success') }}</p>
+            </div>
+            @endif
             @if($wallets->isEmpty())
             <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
                 <p style="color: #92400E; font-size: 1rem; margin: 0; font-weight: 600;">
@@ -309,7 +329,7 @@
             </div>
             @endif
             
-            <form method="POST" action="{{ route('inspection.store', $property) }}" enctype="multipart/form-data" id="guestBookingForm">
+            <form method="POST" action="{{ route('inspection.store', $property) }}" enctype="multipart/form-data" id="guestBookingForm" data-refresh-csrf="1">
                 @csrf
                 <input type="hidden" name="_token" value="{{ csrf_token() }}" id="csrf_token_input">
                 

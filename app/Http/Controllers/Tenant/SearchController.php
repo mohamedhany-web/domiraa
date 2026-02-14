@@ -15,6 +15,7 @@ class SearchController extends Controller
         if ($request->route()->getName() === 'home') {
             $query = Property::where('admin_status', 'approved')
                 ->where('is_suspended', false)
+                ->availableForPublic()
                 ->with('images', 'propertyType');
             
             // تطبيق الفلترة
@@ -48,6 +49,7 @@ class SearchController extends Controller
         // صفحة البحث/العقارات
         $query = Property::where('admin_status', 'approved')
             ->where('is_suspended', false)
+            ->availableForPublic()
             ->with('images', 'propertyType');
 
         // فلترة حسب المنطقة
@@ -86,6 +88,7 @@ class SearchController extends Controller
     {
         $query = Property::where('admin_status', 'approved')
             ->where('is_suspended', false)
+            ->availableForPublic()
             ->with('images', 'propertyType');
 
         // فلترة حسب المنطقة
@@ -128,6 +131,12 @@ class SearchController extends Controller
     public function show(Property $property)
     {
         if ($property->admin_status !== 'approved') {
+            abort(404);
+        }
+        // إخفاء صفحة الوحدة من الزوار إذا لديها حجز مؤكد (تبقى البيانات للمالك والإدارة)
+        $hasConfirmedBooking = $property->bookings()->where('status', 'confirmed')->exists()
+            || $property->roomBookings()->where('status', 'confirmed')->exists();
+        if ($hasConfirmedBooking) {
             abort(404);
         }
 

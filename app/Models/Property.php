@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
@@ -71,6 +72,23 @@ class Property extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function roomBookings(): HasMany
+    {
+        return $this->hasMany(\App\Models\RoomBooking::class);
+    }
+
+    /**
+     * Scope: إخفاء الوحدات التي لديها حجز مؤكد من العرض العام (تبقى ظاهرة للمالك والإدارة).
+     */
+    public function scopeAvailableForPublic(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('bookings', function ($q) {
+            $q->where('status', 'confirmed');
+        })->whereDoesntHave('roomBookings', function ($q) {
+            $q->where('status', 'confirmed');
+        });
     }
 
     public function inquiries(): HasMany

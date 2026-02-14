@@ -302,10 +302,15 @@
         <div class="form-grid">
             <div class="form-group">
                 <label class="form-label required">نوع الوحدة</label>
-                <select name="property_type_id" required class="form-select">
-                    <option value="">اختر النوع</option>
+                <select name="property_type_id" id="property_type_id" required class="form-select" onchange="updateLabelsByPropertyType()">
+                    <option value="" data-room-label="غرفة" data-room-label-plural="غرف">اختر النوع</option>
                     @foreach(\App\Models\PropertyType::active() as $type)
-                    <option value="{{ $type->id }}" {{ old('property_type_id') == $type->id ? 'selected' : '' }}>
+                    @php
+                        $slug = strtolower($type->slug ?? '');
+                        $rLabel = match($slug) { 'commercial' => 'وحدة', 'medical' => 'عيادة', default => 'غرفة' };
+                        $rPlural = match($slug) { 'commercial' => 'وحدات', 'medical' => 'عيادات', default => 'غرف' };
+                    @endphp
+                    <option value="{{ $type->id }}" data-room-label="{{ $rLabel }}" data-room-label-plural="{{ $rPlural }}" {{ old('property_type_id') == $type->id ? 'selected' : '' }}>
                         @if($type->icon)
                         <i class="{{ $type->icon }}"></i>
                         @endif
@@ -337,7 +342,7 @@
             </div>
             
             <div class="form-group" id="roomsFieldGroup">
-                <label class="form-label">عدد الغرف</label>
+                <label class="form-label" id="label_rooms_count">عدد الغرف</label>
                 <input type="number" name="rooms" id="roomsField" min="0" step="1" class="form-input" value="{{ old('rooms') }}" placeholder="مثال: 3">
             </div>
             
@@ -405,7 +410,7 @@
             </label>
             <div class="form-help">
                 <i class="fas fa-info-circle"></i>
-                <span>إذا كانت الوحدة قابلة للمشاركة (مثل شقق الطلبة أو الفنادق)، يمكنك إضافة تفاصيل كل غرفة</span>
+                <span id="room_help_text">إذا كانت الوحدة قابلة للمشاركة (مثل شقق الطلبة أو الفنادق)، يمكنك إضافة تفاصيل كل غرفة</span>
             </div>
         </div>
         
@@ -428,7 +433,7 @@
         
         <div id="roomRentalSection" style="display: none;">
             <div class="form-group">
-                <label class="form-label">عدد الغرف القابلة للإيجار</label>
+                <label class="form-label" id="label_total_rooms">عدد الغرف القابلة للإيجار</label>
                 <input type="number" name="total_rooms" id="total_rooms" min="1" class="form-input" value="{{ old('total_rooms') }}" placeholder="مثال: 4" onchange="updateRoomsList()">
             </div>
             
@@ -669,6 +674,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
+    function getRoomLabel() {
+        const sel = document.getElementById('property_type_id');
+        if (!sel || sel.selectedIndex < 0) return 'غرفة';
+        const opt = sel.options[sel.selectedIndex];
+        return (opt && opt.getAttribute('data-room-label')) ? opt.getAttribute('data-room-label') : 'غرفة';
+    }
+    function getRoomLabelPlural() {
+        const sel = document.getElementById('property_type_id');
+        if (!sel || sel.selectedIndex < 0) return 'غرف';
+        const opt = sel.options[sel.selectedIndex];
+        return (opt && opt.getAttribute('data-room-label-plural')) ? opt.getAttribute('data-room-label-plural') : 'غرف';
+    }
+    function updateLabelsByPropertyType() {
+        const singular = getRoomLabel();
+        const plural = getRoomLabelPlural();
+        const elCount = document.getElementById('label_rooms_count');
+        const elTotal = document.getElementById('label_total_rooms');
+        const elHelp = document.getElementById('room_help_text');
+        if (elCount) elCount.textContent = 'عدد ' + plural;
+        if (elTotal) elTotal.textContent = 'عدد ' + plural + ' القابلة للإيجار';
+        if (elHelp) elHelp.textContent = 'إذا كانت الوحدة قابلة للمشاركة (مثل شقق الطلبة أو الفنادق)، يمكنك إضافة تفاصيل كل ' + singular;
+        if (typeof updateRoomsList === 'function') updateRoomsList();
+    }
+
     function handleFileSelect(input, fieldName) {
         const file = input.files[0];
         if (file) {
@@ -837,6 +866,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateRoomsList() {
         const totalRooms = parseInt(document.getElementById('total_rooms').value) || 0;
         const container = document.getElementById('roomsContainer');
+        const roomLabel = getRoomLabel();
+        const roomLabelPlural = getRoomLabelPlural();
         
         if (totalRooms <= 0) {
             container.innerHTML = '';
@@ -845,7 +876,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         let html = '<div style="background: #F9FAFB; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;">';
         html += '<h3 style="margin-bottom: 1rem; color: #1F2937; font-size: 1.1rem; font-weight: 700;">';
-        html += '<i class="fas fa-door-open" style="margin-left: 0.5rem;"></i>تفاصيل الغرف';
+        html += '<i class="fas fa-door-open" style="margin-left: 0.5rem;"></i>تفاصيل ' + roomLabelPlural;
         html += '</h3>';
         
         // Get old input values from PHP
@@ -861,16 +892,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const oldAmenities = oldRoom.amenities || [];
             
             html += `<div class="room-item" style="background: white; padding: 1.5rem; border-radius: 10px; margin-bottom: 1rem; border: 2px solid #E5E7EB;">`;
-            html += `<h4 style="margin-bottom: 1rem; color: var(--primary); font-weight: 700;">غرفة ${i}</h4>`;
+            html += `<h4 style="margin-bottom: 1rem; color: var(--primary); font-weight: 700;">${roomLabel} ${i}</h4>`;
             
             html += `<div class="form-group">`;
-            html += `<label class="form-label">وصف الغرفة</label>`;
-            html += `<textarea name="rooms[${i}][description]" class="form-input" rows="3" placeholder="وصف تفصيلي للغرفة...">${oldDescription}</textarea>`;
+            html += `<label class="form-label">وصف ${roomLabel}</label>`;
+            html += `<textarea name="rooms[${i}][description]" class="form-input" rows="3" placeholder="وصف تفصيلي لل${roomLabel}...">${oldDescription}</textarea>`;
             html += `</div>`;
             
             html += `<div class="form-grid">`;
             html += `<div class="form-group">`;
-            html += `<label class="form-label required">سعر الغرفة</label>`;
+            html += `<label class="form-label required">سعر ${roomLabel}</label>`;
             html += `<input type="number" name="rooms[${i}][price]" step="0.01" min="0" required class="form-input" placeholder="مثال: 1000" value="${oldPrice}">`;
             html += `</div>`;
             
@@ -917,9 +948,9 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `</div>`;
             
             html += `<div class="form-group">`;
-            html += `<label class="form-label required">صور الغرفة <span style="color: #EF4444;">*</span></label>`;
+            html += `<label class="form-label required">صور ${roomLabel} <span style="color: #EF4444;">*</span></label>`;
             html += `<input type="file" name="rooms[${i}][images][]" multiple accept="image/*" required class="form-input room-image-input" data-room-index="${i}">`;
-            html += `<div class="form-help"><i class="fas fa-info-circle"></i> <span>يجب رفع صورة واحدة على الأقل للغرفة</span></div>`;
+            html += `<div class="form-help"><i class="fas fa-info-circle"></i> <span>يجب رفع صورة واحدة على الأقل لل${roomLabel}</span></div>`;
             html += `<div class="room-images-preview" data-room-index="${i}" style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;"></div>`;
             html += `</div>`;
             
@@ -956,6 +987,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
+        updateLabelsByPropertyType();
         const checkbox = document.getElementById('is_room_rentable');
         if (checkbox) {
             // Always call toggleRoomRental to set initial state
