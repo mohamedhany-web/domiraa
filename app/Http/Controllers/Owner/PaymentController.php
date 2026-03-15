@@ -62,7 +62,7 @@ class PaymentController extends Controller
             'contract' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
         
-        $path = $request->file('contract')->store('contracts/' . $booking->id, 'public');
+        $path = $request->file('contract')->store('contracts/' . $booking->id, \App\Helpers\StorageHelper::publicDisk());
         
         $booking->update([
             'contract_path' => $path,

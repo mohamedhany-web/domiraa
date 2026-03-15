@@ -82,7 +82,7 @@ class PropertyController extends Controller
 
         try {
         $validated = $request->validate([
-            'ownership_proof' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'ownership_proof' => 'required|file|mimes:pdf,jpg,jpeg,png|max:102400',
             'property_type_id' => 'required|exists:property_types,id',
             'address' => 'required|string|max:500',
             'location_lat' => 'nullable|string',
@@ -96,7 +96,7 @@ class PropertyController extends Controller
             'special_requirements' => 'nullable|string',
             'available_dates' => 'nullable|array',
             'images' => 'required|array|min:1',
-            'images.*' => 'image|mimes:jpeg,jpg,png|max:2048',
+            'images.*' => 'image|mimes:jpeg,jpg,png|max:102400',
             'area' => 'nullable|integer|min:1',
             'rooms' => 'exclude_if:is_room_rentable,1|nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
@@ -112,7 +112,7 @@ class PropertyController extends Controller
             'rooms.*.beds' => 'nullable|integer|min:1',
             'rooms.*.amenities' => 'nullable|array',
             'rooms.*.images' => 'required_if:is_room_rentable,1|nullable|array|min:1',
-            'rooms.*.images.*' => 'required|image|mimes:jpeg,jpg,png|max:2048',
+            'rooms.*.images.*' => 'required|image|mimes:jpeg,jpg,png|max:102400',
         ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
@@ -150,9 +150,10 @@ class PropertyController extends Controller
             }
         }
 
+        try {
         // رفع ملف إثبات الملكية
         if ($request->hasFile('ownership_proof')) {
-            $validated['ownership_proof'] = $request->file('ownership_proof')->store('ownership_proofs', 'public');
+            $validated['ownership_proof'] = $request->file('ownership_proof')->store('ownership_proofs', \App\Helpers\StorageHelper::publicDisk());
         }
 
         $validated['user_id'] = Auth::id();
@@ -245,6 +246,12 @@ class PropertyController extends Controller
             }
         }
 
+        } catch (\Throwable $e) {
+            Log::error('Property store upload error', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            $msg = config('app.debug') ? $e->getMessage() : 'حدث خطأ أثناء رفع الملفات. تأكد من إعداد R2 في .env وتنفيذ php artisan config:clear';
+            return redirect()->back()->withInput()->with('error', $msg);
+        }
+
         return redirect()->route('owner.properties.index')
             ->with('success', 'تم رفع معلومات الوحدة بنجاح، في انتظار مراجعة الأدمن');
     }
@@ -313,7 +320,7 @@ class PropertyController extends Controller
 
         try {
         $validated = $request->validate([
-            'ownership_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'ownership_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:102400',
             'property_type_id' => 'required|exists:property_types,id',
             'address' => 'required|string|max:500',
             'location_lat' => 'nullable|string',
@@ -327,7 +334,7 @@ class PropertyController extends Controller
             'special_requirements' => 'nullable|string',
             'available_dates' => 'nullable|array',
             'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,jpg,png|max:2048',
+            'images.*' => 'image|mimes:jpeg,jpg,png|max:102400',
             'area' => 'nullable|integer|min:1',
             'rooms' => 'exclude_if:is_room_rentable,1|nullable|integer|min:0',
             'bathrooms' => 'nullable|integer|min:0',
@@ -344,7 +351,7 @@ class PropertyController extends Controller
             'rooms.*.beds' => 'nullable|integer|min:1',
             'rooms.*.amenities' => 'nullable|array',
             'rooms.*.images' => 'nullable|array',
-            'rooms.*.images.*' => 'image|mimes:jpeg,jpg,png|max:2048',
+            'rooms.*.images.*' => 'image|mimes:jpeg,jpg,png|max:102400',
             'rooms.*.is_available' => 'nullable|boolean',
         ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -385,9 +392,9 @@ class PropertyController extends Controller
 
         if ($request->hasFile('ownership_proof')) {
             if ($property->ownership_proof) {
-                Storage::disk('public')->delete($property->ownership_proof);
+                Storage::disk(\App\Helpers\StorageHelper::publicDisk())->delete($property->ownership_proof);
             }
-            $validated['ownership_proof'] = $request->file('ownership_proof')->store('ownership_proofs', 'public');
+            $validated['ownership_proof'] = $request->file('ownership_proof')->store('ownership_proofs', \App\Helpers\StorageHelper::publicDisk());
         }
 
         $validated['is_room_rentable'] = $request->has('is_room_rentable') && $request->is_room_rentable == '1';

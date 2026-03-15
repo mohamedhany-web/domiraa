@@ -30,9 +30,19 @@ class StorageHelper
             return $path;
         }
 
-        // Remove leading slash
         $path = ltrim($path, '/');
+        $diskName = config('filesystems.public_uploads_disk', 'public');
+
+        // عند استخدام Cloudflare R2: الرابط من R2_PUBLIC_URL
+        if ($diskName === 'r2') {
+            $baseUrl = config('filesystems.disks.r2.url') ?: env('R2_PUBLIC_URL');
+            if ($baseUrl) {
+                $baseUrl = rtrim($baseUrl, '/');
+                return $baseUrl . '/' . $path;
+            }
+        }
         
+        // التخزين المحلي (public): بناء رابط /storage/...
         // Method 1: Use request()->root() (MOST RELIABLE in production)
         $baseUrl = null;
         try {
@@ -119,8 +129,8 @@ class StorageHelper
         $pathInfo = pathinfo($path);
         $thumbPath = $pathInfo['dirname'] . '/thumbnails/thumb_' . $pathInfo['basename'];
         
-        // Check if thumbnail exists, if not use original
-        if (Storage::disk('public')->exists($thumbPath)) {
+        $disk = config('filesystems.public_uploads_disk', 'public');
+        if (Storage::disk($disk)->exists($thumbPath)) {
             return self::url($thumbPath);
         }
         
@@ -199,7 +209,17 @@ class StorageHelper
         }
         
         $path = ltrim($path, '/');
-        return Storage::disk('public')->exists($path);
+        $disk = config('filesystems.public_uploads_disk', 'public');
+        return Storage::disk($disk)->exists($path);
+    }
+
+    /**
+     * اسم القرص المستخدم لرفع الملفات العامة (صور، عقود، إيصالات).
+     * استخدمه عند استدعاء Storage::disk() أو ->store(..., 'disk')
+     */
+    public static function publicDisk(): string
+    {
+        return config('filesystems.public_uploads_disk', 'public');
     }
 }
 

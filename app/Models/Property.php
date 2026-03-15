@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use App\Helpers\StorageHelper;
 
+
 class Property extends Model
 {
     protected $fillable = [
@@ -143,7 +144,7 @@ class Property extends Model
         // If it's a local file path, convert to URL
         $path = ltrim($value, '/');
         
-        if (Storage::disk('public')->exists($path)) {
+        if (Storage::disk(StorageHelper::publicDisk())->exists($path)) {
             return StorageHelper::url($path);
         }
         

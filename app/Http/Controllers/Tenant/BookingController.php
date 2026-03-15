@@ -166,14 +166,14 @@ class BookingController extends Controller
 
             // رفع الإيصال مع معالجة الأخطاء
             try {
-                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, 'public');
+                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, \App\Helpers\StorageHelper::publicDisk());
             } catch (\Exception $e) {
                 // إذا فشل رفع الملف، نحاول إنشاء المجلد أولاً
                 $receiptDir = storage_path('app/public/receipts/' . $booking->id);
                 if (!is_dir($receiptDir)) {
                     @mkdir($receiptDir, 0755, true);
                 }
-                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, 'public');
+                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, \App\Helpers\StorageHelper::publicDisk());
             }
 
             // تحديد نوع الدفع
@@ -504,14 +504,14 @@ class BookingController extends Controller
 
             // رفع الإيصال مع معالجة الأخطاء
             try {
-                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, 'public');
+                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, \App\Helpers\StorageHelper::publicDisk());
             } catch (\Exception $e) {
                 // إذا فشل رفع الملف، نحاول إنشاء المجلد أولاً
                 $receiptDir = storage_path('app/public/receipts/' . $booking->id);
                 if (!is_dir($receiptDir)) {
                     @mkdir($receiptDir, 0755, true);
                 }
-                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, 'public');
+                $receiptPath = $request->file('receipt')->store('receipts/' . $booking->id, \App\Helpers\StorageHelper::publicDisk());
             }
 
             // تحديد نوع الدفع

@@ -75,16 +75,17 @@ class AdminController extends Controller
     public function destroyProperty(Property $property)
     {
         // حذف الصور
+        $disk = \App\Helpers\StorageHelper::publicDisk();
         foreach ($property->images as $image) {
-            if (Storage::disk('public')->exists($image->image_path)) {
-                Storage::disk('public')->delete($image->image_path);
+            if (Storage::disk($disk)->exists($image->image_path)) {
+                Storage::disk($disk)->delete($image->image_path);
             }
             $image->delete();
         }
         
         // حذف ملف إثبات الملكية
-        if ($property->ownership_proof && Storage::disk('public')->exists($property->ownership_proof)) {
-            Storage::disk('public')->delete($property->ownership_proof);
+        if ($property->ownership_proof && Storage::disk($disk)->exists($property->ownership_proof)) {
+            Storage::disk($disk)->delete($property->ownership_proof);
         }
         
         $property->delete();
@@ -386,10 +387,10 @@ class AdminController extends Controller
     public function destroyBooking(\App\Models\Booking $booking)
     {
         // حذف الدفعات المرتبطة
+        $disk = \App\Helpers\StorageHelper::publicDisk();
         foreach ($booking->payments as $payment) {
-            // حذف إيصال الدفع
-            if ($payment->receipt_path && Storage::disk('public')->exists($payment->receipt_path)) {
-                Storage::disk('public')->delete($payment->receipt_path);
+            if ($payment->receipt_path && Storage::disk($disk)->exists($payment->receipt_path)) {
+                Storage::disk($disk)->delete($payment->receipt_path);
             }
             $payment->delete();
         }

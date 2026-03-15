@@ -276,6 +276,11 @@
 @endpush
 
 @section('content')
+@if(session('error'))
+<div class="form-section" style="background: #FEE2E2; border: 2px solid #EF4444; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
+    <p style="color: #B91C1C; font-weight: 600; margin: 0;"><i class="fas fa-exclamation-circle"></i> {{ session('error') }}</p>
+</div>
+@endif
 <form method="POST" action="{{ route('owner.properties.store') }}" enctype="multipart/form-data" id="propertyForm">
     @csrf
     
@@ -293,7 +298,7 @@
                     <i class="fas fa-file-upload"></i>
                 </div>
                 <div class="file-upload-text">اضغط لرفع ملف إثبات الملكية</div>
-                <div class="file-upload-hint">PDF, JPG, PNG (حد أقصى 5MB)</div>
+                <div class="file-upload-hint">PDF, JPG, PNG (حجم كبير مسموح — حتى 100 ميجا لكل ملف)</div>
             </div>
             <input type="file" name="ownership_proof" id="ownership_proof" accept=".pdf,.jpg,.jpeg,.png" required class="file-input" onchange="handleFileSelect(this, 'ownership_proof')">
             <div id="ownership_proof_preview" class="file-preview" style="display: none;"></div>
@@ -478,7 +483,7 @@
                     <i class="fas fa-images"></i>
                 </div>
                 <div class="file-upload-text">اضغط لرفع صور الوحدة</div>
-                <div class="file-upload-hint">يمكن رفع عدة صور - JPG, PNG (حد أقصى 2MB لكل صورة)</div>
+                <div class="file-upload-hint">يمكن رفع عدد غير محدود من الصور — JPG, PNG (حتى 100 ميجا لكل صورة)</div>
             </div>
             <input type="file" name="images[]" id="images" multiple accept="image/*" required class="file-input" onchange="handleImagesSelect(this)">
             <div id="images_preview" class="file-preview"></div>

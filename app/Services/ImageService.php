@@ -47,7 +47,7 @@ class ImageService
         $imageInfo = getimagesize($file->getPathname());
         if (!$imageInfo) {
             // Not an image, just store it
-            $storedPath = $file->store($folder, 'public');
+            $storedPath = $file->store($folder, StorageHelper::publicDisk());
             return [
                 'path' => $storedPath,
                 'thumbnail' => null,
@@ -60,14 +60,14 @@ class ImageService
         $optimizedImage = $this->optimizeImage($file, $imageInfo);
         
         // Store the optimized image
-        Storage::disk('public')->put($path, $optimizedImage);
+        $disk = StorageHelper::publicDisk();
+        Storage::disk($disk)->put($path, $optimizedImage);
         
-        // Create thumbnail if requested
         if ($createThumbnail) {
             $thumbFilename = 'thumb_' . $filename;
             $thumbPath = "{$folder}/thumbnails/{$thumbFilename}";
             $thumbnail = $this->createThumbnail($file, $imageInfo);
-            Storage::disk('public')->put($thumbPath, $thumbnail);
+            Storage::disk($disk)->put($thumbPath, $thumbnail);
         }
         
         return [
@@ -99,13 +99,14 @@ class ImageService
     {
         $deleted = false;
         
-        if (Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
+        $disk = StorageHelper::publicDisk();
+        if (Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
             $deleted = true;
         }
         
-        if ($thumbnailPath && Storage::disk('public')->exists($thumbnailPath)) {
-            Storage::disk('public')->delete($thumbnailPath);
+        if ($thumbnailPath && Storage::disk($disk)->exists($thumbnailPath)) {
+            Storage::disk($disk)->delete($thumbnailPath);
         }
         
         return $deleted;

@@ -43,7 +43,7 @@ class AccountController extends Controller
         ]);
         
         $user = Auth::user();
-        $path = $request->file('document')->store('documents/' . $user->id, 'public');
+        $path = $request->file('document')->store('documents/' . $user->id, \App\Helpers\StorageHelper::publicDisk());
         
         // حفظ مسار المستند في قاعدة البيانات
         if ($request->document_type === 'id_card') {

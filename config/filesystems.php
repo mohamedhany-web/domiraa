@@ -17,15 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Uploads Disk (ملفات المالكين: إثبات ملكية، صور، عقود، إيصالات)
+    |--------------------------------------------------------------------------
+    | قيمته إما public (التخزين المحلي) أو r2 (Cloudflare R2). عند R2 حدد في .env
+    | FILESYSTEM_DISK_PUBLIC=r2 مع متغيرات R2.
+    */
+    'public_uploads_disk' => env('FILESYSTEM_DISK_PUBLIC', 'public'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
-    |
-    | Below you may configure as many filesystem disks as necessary, and you
-    | may even configure multiple disks for the same driver. Examples for
-    | most supported storage drivers are configured here for reference.
-    |
     | Supported drivers: "local", "ftp", "sftp", "s3"
-    |
     */
 
     'disks' => [
@@ -44,6 +47,20 @@ return [
             'url' => env('APP_URL', url('/')) . '/storage',
             'visibility' => 'public',
             'throw' => false,
+            'report' => false,
+        ],
+
+        /* Cloudflare R2 (S3-compatible). استخدم FILESYSTEM_DISK_PUBLIC=r2 للتفعيل. */
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('AWS_BUCKET'),
+            'url' => env('R2_PUBLIC_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
+            'throw' => true,
             'report' => false,
         ],
 

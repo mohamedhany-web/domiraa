@@ -87,7 +87,7 @@ class ExpenseController extends Controller
 
         // رفع الإيصال
         if ($request->hasFile('receipt')) {
-            $validated['receipt_path'] = $request->file('receipt')->store('receipts', 'public');
+            $validated['receipt_path'] = $request->file('receipt')->store('receipts', \App\Helpers\StorageHelper::publicDisk());
         }
 
         $validated['created_by'] = auth()->id();
@@ -148,9 +148,9 @@ class ExpenseController extends Controller
         if ($request->hasFile('receipt')) {
             // حذف الإيصال القديم
             if ($expense->receipt_path) {
-                Storage::disk('public')->delete($expense->receipt_path);
+                Storage::disk(\App\Helpers\StorageHelper::publicDisk())->delete($expense->receipt_path);
             }
-            $validated['receipt_path'] = $request->file('receipt')->store('receipts', 'public');
+            $validated['receipt_path'] = $request->file('receipt')->store('receipts', \App\Helpers\StorageHelper::publicDisk());
         }
 
         $expense->update($validated);
@@ -210,7 +210,7 @@ class ExpenseController extends Controller
 
         // حذف الإيصال
         if ($expense->receipt_path) {
-            Storage::disk('public')->delete($expense->receipt_path);
+            Storage::disk(\App\Helpers\StorageHelper::publicDisk())->delete($expense->receipt_path);
         }
 
         ActivityLog::log('expense_delete', 'تم حذف المصروف: ' . $expense->title);
