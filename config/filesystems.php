@@ -57,9 +57,13 @@ return [
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION', 'auto'),
             'bucket' => env('AWS_BUCKET'),
+            // IMPORTANT:
+            // - This must be a PUBLIC base URL (custom domain or *.r2.dev)
+            // - Do NOT put the S3 API endpoint here (r2.cloudflarestorage.com)
             'url' => env('R2_PUBLIC_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'public',
             'throw' => true,
             'report' => false,
         ],

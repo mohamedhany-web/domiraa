@@ -5,6 +5,20 @@
 
 @push('styles')
 <style>
+    .admin-edit-page {
+        max-width: 100%;
+        margin: 0;
+        width: 100%;
+    }
+    
+    .admin-edit-page * {
+        box-sizing: border-box;
+    }
+    
+    .admin-edit-page img {
+        max-width: 100%;
+    }
+    
     .form-section {
         background: white;
         border-radius: 12px;
@@ -12,6 +26,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         border: 1px solid rgba(0, 0, 0, 0.05);
         margin-bottom: 1.5rem;
+        overflow: hidden;
     }
     
     .form-group {
@@ -55,6 +70,21 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
     }
+
+    /* Prevent horizontal overflow from long text/urls */
+    .form-input,
+    .form-select,
+    .form-textarea {
+        min-width: 0;
+    }
+    
+    /* Make actions wrap cleanly on narrow widths */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
     
     .btn-submit {
         background: linear-gradient(135deg, #1d313f 0%, #6b8980 100%);
@@ -97,7 +127,19 @@
 @endpush
 
 @section('content')
+<div class="admin-edit-page">
 <div class="form-section">
+    @if (session('success'))
+        <div style="background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('error'))
+        <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('admin.properties.update', $property) }}">
         @csrf
         @method('PUT')
@@ -248,8 +290,8 @@
                 <p style="color: #DC2626; font-size: 0.875rem; margin-top: 0.5rem;">{{ $message }}</p>
             @enderror
         </div>
-        
-        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+
+        <div class="form-actions">
             <button type="submit" class="btn-submit">
                 <i class="fas fa-save" style="margin-left: 0.5rem;"></i>
                 حفظ التغييرات
@@ -260,6 +302,105 @@
             </a>
         </div>
     </form>
+</div>
+
+<div class="form-section">
+    <div class="form-group">
+        <label class="form-label">صور الوحدة (صور العقار)</label>
+
+        @if($property->images()->count())
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 0.75rem;">
+                @foreach($property->images()->get() as $img)
+                    <div style="border:1px solid #E5E7EB; border-radius: 10px; overflow:hidden; background:#fff;">
+                        <a href="{{ $img->url }}" target="_blank" rel="noopener">
+                            <img src="{{ $img->thumbnail_url }}" alt="image" style="width:100%; height:120px; object-fit:cover; display:block;">
+                        </a>
+                        <div style="padding: 8px;">
+                            <form method="POST" action="{{ route('admin.properties.images.destroy', [$property, $img]) }}" onsubmit="return confirm('حذف هذه الصورة؟');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" style="width:100%; background:#FEF2F2; color:#991B1B; border:1px solid #FECACA; padding:8px; border-radius:8px; cursor:pointer; font-weight:700;">
+                                    حذف الصورة
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div style="color:#6B7280; margin-top:0.5rem;">لا توجد صور حالياً.</div>
+        @endif
+
+        <div style="margin-top: 1rem;">
+            <form method="POST" action="{{ route('admin.properties.images.store', $property) }}" enctype="multipart/form-data">
+                @csrf
+                <input type="file" name="images[]" multiple accept="image/*" class="form-input">
+                @error('images')
+                    <p style="color: #DC2626; font-size: 0.875rem; margin-top: 0.5rem;">{{ $message }}</p>
+                @enderror
+                @error('images.*')
+                    <p style="color: #DC2626; font-size: 0.875rem; margin-top: 0.5rem;">{{ $message }}</p>
+                @enderror
+                <button type="submit" class="btn-submit" style="margin-top: 0.75rem;">
+                    <i class="fas fa-images" style="margin-left: 0.5rem;"></i>
+                    إضافة صور جديدة
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @if($property->rooms()->count())
+        <div class="form-group">
+            <label class="form-label">صور الغرف/الوحدات داخل الوحدة</label>
+            @foreach($property->rooms()->get() as $room)
+                <div style="border:1px solid #E5E7EB; border-radius: 12px; padding: 12px; margin-top: 12px;">
+                    <div style="display:flex; justify-content:space-between; gap: 10px; flex-wrap:wrap; align-items:center;">
+                        <div style="font-weight:800; color:#111827;">
+                            {{ $room->room_name }} @if($room->room_number) <span style="color:#6B7280;">({{ $room->room_number }})</span> @endif
+                        </div>
+                        <div style="color:#6B7280; font-size: 0.9rem;">{{ $room->price }} / {{ $room->price_type }}</div>
+                    </div>
+
+                    @php($roomImages = $room->images ?? [])
+                    @if(count($roomImages))
+                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 0.75rem;">
+                            @foreach($roomImages as $path)
+                                <div style="border:1px solid #E5E7EB; border-radius: 10px; overflow:hidden; background:#fff;">
+                                    <a href="{{ \App\Helpers\StorageHelper::url($path) }}" target="_blank" rel="noopener">
+                                        <img src="{{ \App\Helpers\StorageHelper::thumbnailUrl($path) }}" alt="room-image" style="width:100%; height:120px; object-fit:cover; display:block;">
+                                    </a>
+                                    <div style="padding: 8px;">
+                                        <form method="POST" action="{{ route('admin.properties.rooms.images.destroy', [$property, $room]) }}" onsubmit="return confirm('حذف هذه الصورة؟');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="path" value="{{ $path }}">
+                                            <button type="submit" style="width:100%; background:#FEF2F2; color:#991B1B; border:1px solid #FECACA; padding:8px; border-radius:8px; cursor:pointer; font-weight:700;">
+                                                حذف الصورة
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div style="color:#6B7280; margin-top:0.5rem;">لا توجد صور لهذه الغرفة/الوحدة.</div>
+                    @endif
+
+                    <div style="margin-top: 0.75rem;">
+                        <form method="POST" action="{{ route('admin.properties.rooms.images.store', [$property, $room]) }}" enctype="multipart/form-data">
+                            @csrf
+                            <input type="file" name="images[]" multiple accept="image/*" class="form-input">
+                            <button type="submit" class="btn-submit" style="margin-top: 0.75rem;">
+                                <i class="fas fa-plus" style="margin-left: 0.5rem;"></i>
+                                إضافة صور لهذه الغرفة/الوحدة
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</div>
 </div>
 @endsection
 

@@ -207,9 +207,9 @@
         </span>
     </div>
     
-    @if($property->images->count() > 0)
+    @if($property->images()->count() > 0)
     <div class="property-images">
-        @foreach($property->images as $image)
+        @foreach($property->images()->get() as $image)
         <img src="{{ $image->url }}" alt="{{ $property->address }}" class="property-image" onerror="this.src='{{ \App\Helpers\StorageHelper::placeholder() }}'; this.onerror=null;">
         @endforeach
     </div>
@@ -309,7 +309,7 @@
     </div>
     
     <!-- Rooms Section (if room rentable) -->
-    @if($property->is_room_rentable && $property->rooms && $property->rooms->count() > 0)
+    @if($property->is_room_rentable && $property->rooms()->count() > 0)
     <div class="info-card" style="margin-top: 1.5rem;">
         <h3 class="info-title">
             <i class="fas fa-door-open"></i>
@@ -317,7 +317,7 @@
         </h3>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-            @foreach($property->rooms as $room)
+            @foreach($property->rooms()->get() as $room)
             <div style="background: #F9FAFB; border: 2px solid #E5E7EB; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease;" onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#E5E7EB'; this.style.transform='translateY(0)'">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                     <h4 style="font-size: 1.25rem; font-weight: 700; color: var(--primary); margin: 0;">{{ $room->room_name }}</h4>

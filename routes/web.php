@@ -284,6 +284,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/inquiries/{inquiry}/answer', [AdminController::class, 'answerInquiry'])->middleware('permission:inquiries.answer')->name('inquiries.answer');
         Route::get('/properties/{property}/edit', [AdminController::class, 'editProperty'])->middleware('permission:properties.edit')->name('properties.edit');
         Route::put('/properties/{property}', [AdminController::class, 'updateProperty'])->middleware('permission:properties.edit')->name('properties.update');
+        Route::post('/properties/{property}/images', [AdminController::class, 'addPropertyImages'])->middleware('permission:properties.edit')->name('properties.images.store');
+        Route::delete('/properties/{property}/images/{image}', [AdminController::class, 'deletePropertyImage'])->middleware('permission:properties.edit')->name('properties.images.destroy');
+        Route::post('/properties/{property}/rooms/{room}/images', [AdminController::class, 'addRoomImages'])->middleware('permission:properties.edit')->name('properties.rooms.images.store');
+        Route::delete('/properties/{property}/rooms/{room}/images', [AdminController::class, 'deleteRoomImage'])->middleware('permission:properties.edit')->name('properties.rooms.images.destroy');
         Route::delete('/properties/{property}', [AdminController::class, 'destroyProperty'])->middleware('permission:properties.delete')->name('properties.destroy');
         Route::get('/settings', [AdminController::class, 'settings'])->middleware('permission:settings.view')->name('settings');
         Route::post('/settings', [AdminController::class, 'updateSettings'])->middleware('permission:settings.edit')->name('settings.update');

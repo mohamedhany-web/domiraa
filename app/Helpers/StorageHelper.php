@@ -7,6 +7,17 @@ use Illuminate\Support\Facades\URL;
 
 class StorageHelper
 {
+    protected static function looksLikePublicR2Url(string $baseUrl): bool
+    {
+        $baseUrl = strtolower($baseUrl);
+        // Cloudflare public buckets often use *.r2.dev or a custom domain.
+        // The S3 API endpoint (*.r2.cloudflarestorage.com) is NOT a public file URL.
+        if (str_contains($baseUrl, 'r2.cloudflarestorage.com')) {
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Get public URL for a file in storage
      * Works correctly on both local and production servers
@@ -35,10 +46,23 @@ class StorageHelper
 
         // عند استخدام Cloudflare R2: الرابط من R2_PUBLIC_URL
         if ($diskName === 'r2') {
-            $baseUrl = config('filesystems.disks.r2.url') ?: env('R2_PUBLIC_URL');
-            if ($baseUrl) {
-                $baseUrl = rtrim($baseUrl, '/');
-                return $baseUrl . '/' . $path;
+            $baseUrl = (string) (config('filesystems.disks.r2.url') ?: env('R2_PUBLIC_URL', ''));
+            $useSigned = filter_var(env('R2_USE_SIGNED_URLS', '0'), FILTER_VALIDATE_BOOL);
+
+            if ($baseUrl !== '' && self::looksLikePublicR2Url($baseUrl) && !$useSigned) {
+                return rtrim($baseUrl, '/') . '/' . $path;
+            }
+
+            // FINAL FIX: Private bucket support (Signed URL)
+            // This works even if the bucket is private and you only have the S3 API endpoint.
+            try {
+                return Storage::disk('r2')->temporaryUrl($path, now()->addMinutes(60));
+            } catch (\Throwable $e) {
+                // If temporaryUrl isn't supported for any reason, return best-effort URL.
+                // (May still 403 if bucket is private.)
+                if ($baseUrl !== '') {
+                    return rtrim($baseUrl, '/') . '/' . $path;
+                }
             }
         }
         

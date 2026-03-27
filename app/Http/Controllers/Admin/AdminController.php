@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Models\PropertyImage;
+use App\Models\Room;
 use App\Models\User;
 use App\Models\Payment;
 use App\Models\Wallet;
@@ -43,7 +44,7 @@ class AdminController extends Controller
     
     public function editProperty(Property $property)
     {
-        $property->load('user', 'images');
+        $property->load('user', 'images', 'rooms');
         return view('admin.properties.edit', compact('property'));
     }
     
@@ -70,6 +71,150 @@ class AdminController extends Controller
         
         return redirect()->route('admin.properties')
             ->with('success', 'تم تحديث الوحدة بنجاح');
+    }
+
+    public function addPropertyImages(Request $request, Property $property)
+    {
+        try {
+            $request->validate([
+                'images' => 'required|array|min:1',
+                'images.*' => 'image|mimes:jpeg,jpg,png,webp|max:102400',
+            ]);
+
+            Log::info('Admin addPropertyImages start', [
+                'property_id' => $property->id,
+                'disk' => \App\Helpers\StorageHelper::publicDisk(),
+                'files_count' => is_array($request->file('images')) ? count($request->file('images')) : 0,
+            ]);
+
+            $imageService = new ImageService();
+            $currentCount = (int) $property->images()->count();
+
+            foreach ($request->file('images', []) as $index => $image) {
+                $result = $imageService->upload($image, 'properties', true);
+                PropertyImage::create([
+                    'property_id' => $property->id,
+                    'image_path' => $result['path'],
+                    'thumbnail_path' => $result['thumbnail'],
+                    'order' => $currentCount + $index,
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'تم إضافة الصور بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $filesCount = is_array($request->file('images')) ? count($request->file('images')) : 0;
+            $hint = $filesCount === 0
+                ? 'لم يتم استلام ملفات من المتصفح. إذا كانت الصور كبيرة قد يكون السبب حدود PHP (upload_max_filesize / post_max_size).'
+                : 'تحقق من نوع/حجم الصور.';
+
+            return redirect()->back()
+                ->with('error', $hint)
+                ->withErrors($e->validator)
+                ->withInput();
+        } catch (\Throwable $e) {
+            Log::error('Admin addPropertyImages failed', [
+                'property_id' => $property->id,
+                'disk' => \App\Helpers\StorageHelper::publicDisk(),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return redirect()->back()->with('error', 'فشل رفع الصور: ' . $e->getMessage());
+        }
+    }
+
+    public function deletePropertyImage(Property $property, PropertyImage $image)
+    {
+        if ((int) $image->property_id !== (int) $property->id) {
+            abort(404);
+        }
+
+        $imageService = new ImageService();
+        $imageService->delete($image->image_path, $image->thumbnail_path);
+        $image->delete();
+
+        return redirect()->back()->with('success', 'تم حذف الصورة بنجاح');
+    }
+
+    public function addRoomImages(Request $request, Property $property, Room $room)
+    {
+        if ((int) $room->property_id !== (int) $property->id) {
+            abort(404);
+        }
+
+        try {
+            $request->validate([
+                'images' => 'required|array|min:1',
+                'images.*' => 'image|mimes:jpeg,jpg,png,webp|max:102400',
+            ]);
+
+            Log::info('Admin addRoomImages start', [
+                'property_id' => $property->id,
+                'room_id' => $room->id,
+                'disk' => \App\Helpers\StorageHelper::publicDisk(),
+                'files_count' => is_array($request->file('images')) ? count($request->file('images')) : 0,
+            ]);
+
+            $imageService = new ImageService();
+            $paths = $room->images ?? [];
+
+            foreach ($request->file('images', []) as $image) {
+                $result = $imageService->upload($image, 'rooms', true);
+                $paths[] = $result['path'];
+            }
+
+            $room->update(['images' => array_values(array_unique($paths))]);
+
+            return redirect()->back()->with('success', 'تم إضافة صور الغرفة/الوحدة بنجاح');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $filesCount = is_array($request->file('images')) ? count($request->file('images')) : 0;
+            $hint = $filesCount === 0
+                ? 'لم يتم استلام ملفات من المتصفح. إذا كانت الصور كبيرة قد يكون السبب حدود PHP (upload_max_filesize / post_max_size).'
+                : 'تحقق من نوع/حجم الصور.';
+
+            return redirect()->back()
+                ->with('error', $hint)
+                ->withErrors($e->validator)
+                ->withInput();
+        } catch (\Throwable $e) {
+            Log::error('Admin addRoomImages failed', [
+                'property_id' => $property->id,
+                'room_id' => $room->id,
+                'disk' => \App\Helpers\StorageHelper::publicDisk(),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return redirect()->back()->with('error', 'فشل رفع صور الغرفة/الوحدة: ' . $e->getMessage());
+        }
+    }
+
+    public function deleteRoomImage(Request $request, Property $property, Room $room)
+    {
+        if ((int) $room->property_id !== (int) $property->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $paths = $room->images ?? [];
+        $target = $validated['path'];
+
+        if (!in_array($target, $paths, true)) {
+            return redirect()->back()->with('error', 'الصورة غير موجودة');
+        }
+
+        $imageService = new ImageService();
+        $imageService->delete($target, null);
+
+        $paths = array_values(array_filter($paths, fn ($p) => $p !== $target));
+        $room->update(['images' => $paths]);
+
+        return redirect()->back()->with('success', 'تم حذف صورة الغرفة/الوحدة بنجاح');
     }
     
     public function destroyProperty(Property $property)
